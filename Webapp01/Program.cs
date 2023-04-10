@@ -14,10 +14,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseDefaultFiles(new DefaultFilesOptions { DefaultFileNames = new List<string> { "index.html" } });
-    app.UseStaticFiles();
+   
 }
 
+app.UseDefaultFiles(new DefaultFilesOptions { DefaultFileNames = new List<string> { "index.html" } });
+app.UseStaticFiles();
 
 app.UseAuthorization();
 
