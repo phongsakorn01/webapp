@@ -17,7 +17,8 @@ if (app.Environment.IsDevelopment())
    
 }
 
-app.UseDefaultFiles(new DefaultFilesOptions { DefaultFileNames = new List<string> { "index.html" } });
+app.UseDefaultFiles();
+
 app.UseStaticFiles();
 
 app.UseAuthorization();
