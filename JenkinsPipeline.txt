@@ -1,0 +1,61 @@
+pipeline {
+  agent any
+  environment {
+    dotnet = 'dotnetsdk'
+    remoteCommands =
+      """ansible-playbook -i /etc/ansible/hosts /etc/ansible/app1.yaml /etc/ansible/app2.yaml /etc/ansible/app3.yaml
+;
+
+     """
+  }
+  stages {
+    stage('Cleanup Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+    stage('Checkout') {  
+    steps {
+       git credentialsId: '8b73eb85-2957-4d29-8115-df34cd84f4cf', url: 'https://github.com/phongsakorn01/webapp.git', branch: 'main'          #pull repository branch main to jenkins workspace 
+   }  
+  }  
+    stage('Build') {  
+    steps {  
+     bat 'dotnet build C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp.sln --configuration Release'        
+   }  
+  } 
+    stage('Test') {  
+    steps {  
+     bat 'dotnet test C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp01\\Webapp01.csproj'                
+   }  
+  }
+    stage("Release"){
+      steps {
+       bat 'dotnet build  C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp.sln /p:PublishProfile="C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp01\\Properties\\PublishProfiles\\JenkinsProfile.pubxml" /p:Platform="Any CPU" /p:DeployOnBuild=true /m'                #package artifact file to zip for remote deploy 
+    }
+  }
+    stage('Login to remote host') {
+      steps {
+        sshagent(['ubuntu']) {
+          sh 'ssh -t -t  ubuntu@ec2-13-250-115-124.ap-southeast-1.compute.amazonaws.com -o StrictHostKeyChecking=no $remoteCommands' #remote command via ssh 
+        }
+      }
+    }
+    stage('Deploy to app1'){
+      steps{
+      bat '"C:\\Program Files (x86)\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe" -verb:sync -source:package="C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp01\\bin\\Debug\\net6.0\\Webapp01.zip" -dest:auto,computerName="https://{PublicIP}:8172/msdeploy.axd",userName="EC2AMAZ-SPP4TFI\\Administrator",Password="{password}",AuthType=Basic -setParam:"IIS Web Application Name"="Sample App" -allowUntrusted=true '
+ }
+}
+    stage('Deploy to app2'){
+      steps{
+      bat '"C:\\Program Files (x86)\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe" -verb:sync -source:package="C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp01\\bin\\Debug\\net6.0\\Webapp01.zip" -dest:auto,computerName="https://{PublicIP}:8172/msdeploy.axd",userName="EC2AMAZ-MH76JPI\\Administrator",Password="{password}",AuthType=Basic -setParam:"IIS Web Application Name"="Sample App" -allowUntrusted=true '
+ }
+}
+    stage('Deploy to app3'){
+      steps{
+      bat '"C:\\Program Files (x86)\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe" -verb:sync -source:package="C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\test_ansibleserver\\Webapp01\\bin\\Debug\\net6.0\\Webapp01.zip" -dest:auto,computerName="https://{PublicIP}:8172/msdeploy.axd",userName="EC2AMAZ-GTA1D7N\\Administrator",Password="{password}",AuthType=Basic -setParam:"IIS Web Application Name"="Sample App" -allowUntrusted=true '
+ }
+}
+   
+  }
+}
